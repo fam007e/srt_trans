@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "srt-translator"
+version = "0.1.1"
+authors = [
+    { name = "Faisal Ahmed Moshiur", email = "faisalmoshiur+gitSRT@gmail.com" },
+]
+description = "A powerful script to translate .srt files with concurrent processing support."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Multimedia :: Video",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pysrt",
+    "deep-translator",
+    "tqdm",
+    "chardet",
+    "nltk>=3.9",
+    "langdetect",
+    "requests>=2.32.2",
+    "urllib3>=1.26.19",
+    "zipp>=3.19.1",
+    "python-dotenv",
+    "tenacity",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/fam007e/SRT_Trans"
+"Bug Tracker" = "https://github.com/fam007e/SRT_Trans/issues"
+
+[project.scripts]
+translate-srt = "srt_translator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["srt_translator*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "network: marks tests as requiring network access (deselect with '-m \"not network\"')",
+]

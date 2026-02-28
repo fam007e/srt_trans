@@ -4,13 +4,60 @@ Supports multiple translation services, concurrent processing, and batch operati
 """
 import argparse
 import os
+import json
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Tuple, Optional, Any, Dict
 from tqdm import tqdm
 from .srt_parser import SrtParser
-from .translators import get_translator, get_supported_languages, validate_language_code
+from .translators import get_translator, get_supported_languages, validate_language_code, BaseTranslator
 
 
-def translate_block(block_data):
+def get_file_hash(filepath: str) -> str:
+    """Generate a simple hash of the file path and size for state tracking."""
+    stats = os.stat(filepath)
+    hash_input = f"{filepath}_{stats.st_size}_{stats.st_mtime}"
+    return hashlib.md5(hash_input.encode()).hexdigest()
+
+
+class TranslationState:
+    """Handles persistence of translation progress."""
+    def __init__(self, input_file: str, output_lang: str, translator: str):
+        self.state_dir = os.path.join(os.path.expanduser("~"), ".srt_translator_cache")
+        os.makedirs(self.state_dir, exist_ok=True)
+        
+        file_hash = get_file_hash(input_file)
+        self.state_file = os.path.join(self.state_dir, f"{file_hash}_{output_lang}_{translator}.json")
+        self.data: Dict[str, Any] = self._load()
+
+    def _load(self) -> Dict[str, Any]:
+        if os.path.exists(self.state_file):
+            try:
+                with open(self.state_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception:
+                return {}
+        return {}
+
+    def save(self, results: Dict[int, str]) -> None:
+        """Save current progress to disk."""
+        self.data['translated_blocks'] = results
+        with open(self.state_file, 'w', encoding='utf-8') as f:
+            json.dump(self.data, f, ensure_ascii=False)
+
+    def get_translated_blocks(self) -> Dict[int, str]:
+        """Return already translated blocks from state."""
+        # JSON keys are always strings, convert back to int
+        blocks = self.data.get('translated_blocks', {})
+        return {int(k): v for k, v in blocks.items()}
+
+    def clear(self) -> None:
+        """Remove state file after successful completion."""
+        if os.path.exists(self.state_file):
+            os.remove(self.state_file)
+
+
+def translate_block(block_data: Tuple[int, str, BaseTranslator, str, str]) -> Tuple[int, str]:
     """
     Translate a single subtitle block.
 
@@ -27,7 +74,7 @@ def translate_block(block_data):
         cleaned_text, tags = SrtParser.clean_text(original_text)
         sentences = SrtParser.split_into_sentences(cleaned_text)
 
-        translated_sentences = []
+        translated_sentences: List[str] = []
         for sentence in sentences:
             detected_lang = SrtParser.detect_language(sentence)
 
@@ -53,22 +100,11 @@ def translate_block(block_data):
         return (idx, original_text)
 
 
-def translate_single_srt(input_file, output_lang, source_lang, translator_service, *,
-                         output_dir=None, workers=1, _batch_size=10):
+def translate_single_srt(input_file: str, output_lang: str, source_lang: str, translator_service: str, *,
+                         output_dir: Optional[str] = None, workers: int = 1, _batch_size: int = 10,
+                         use_cache: bool = True) -> str:
     """
-    Translate a single SRT file.
-
-    Args:
-        input_file: Path to input SRT file
-        output_lang: Target language code
-        source_lang: Source language code ('auto' for detection)
-        translator_service: 'google', 'deepl', or 'mymemory'
-        output_dir: Optional output directory
-        workers: Number of concurrent workers (1 = sequential)
-        batch_size: Sentences per batch (for future batch API support)
-
-    Returns:
-        Status message string
+    Translate a single SRT file with resume support.
     """
     try:
         # Validate target language code
@@ -83,32 +119,49 @@ def translate_single_srt(input_file, output_lang, source_lang, translator_servic
         if total_blocks == 0:
             return f'Warning: No subtitles found in {input_file}'
 
-        # Initialize translator using factory function
+        # Initialize translator
         translator = get_translator(translator_service)
+        
+        # State management for resume capability
+        state = TranslationState(input_file, output_lang, translator_service)
+        results_map = state.get_translated_blocks() if use_cache else {}
+        
+        if len(results_map) > 0:
+            print(f"  Resuming from {len(results_map)}/{total_blocks} translated blocks...")
 
-        # Prepare work items
-        work_items = [
+        # Prepare work items (only for those not already translated)
+        work_items: List[Tuple[int, str, BaseTranslator, str, str]] = [
             (i, text, translator, output_lang, source_lang)
             for i, text in enumerate(original_subtitle_blocks)
+            if i not in results_map
         ]
 
-        # Translate with concurrency if workers > 1
-        if workers > 1 and total_blocks > 10:
-            translated_subtitle_blocks = [None] * total_blocks
-            with ThreadPoolExecutor(max_workers=workers) as executor:
-                futures = {executor.submit(translate_block, item): item[0] for item in work_items}
-                for future in tqdm(as_completed(futures), total=total_blocks,
-                                   desc=f"  {os.path.basename(input_file)}", leave=False):
-                    idx, translated_text = future.result()
-                    translated_subtitle_blocks[idx] = translated_text
-        else:
-            # Sequential translation with progress
-            translated_subtitle_blocks = []
-            for item in tqdm(work_items, desc=f"  {os.path.basename(input_file)}", leave=False):
-                _, translated_text = translate_block(item)
-                translated_subtitle_blocks.append(translated_text)
+        if work_items:
+            # Translate with concurrency if workers > 1
+            if workers > 1 and len(work_items) > 5:
+                with ThreadPoolExecutor(max_workers=workers) as executor:
+                    futures = {executor.submit(translate_block, item): item[0] for item in work_items}
+                    # Save state periodically (every 10 blocks or so)
+                    count = 0
+                    for future in tqdm(as_completed(futures), total=len(work_items),
+                                       desc=f"  {os.path.basename(input_file)}", leave=False):
+                        idx, translated_text = future.result()
+                        results_map[idx] = translated_text
+                        count += 1
+                        if count % 10 == 0:
+                            state.save(results_map)
+            else:
+                # Sequential translation with progress
+                for item in tqdm(work_items, desc=f"  {os.path.basename(input_file)}", leave=False):
+                    idx, translated_text = translate_block(item)
+                    results_map[idx] = translated_text
+                    state.save(results_map)
+            
+            # Final save
+            state.save(results_map)
 
         # Update and save SRT
+        translated_subtitle_blocks = [results_map.get(i, original_subtitle_blocks[i]) for i in range(total_blocks)]
         srt_parser.update_subtitles_text(translated_subtitle_blocks)
 
         # Determine output file path
@@ -122,6 +175,10 @@ def translate_single_srt(input_file, output_lang, source_lang, translator_servic
             output_file = f'{base}_{output_lang}{ext}'
 
         srt_parser.write_srt(output_file)
+        
+        # Success! Clear the cache
+        state.clear()
+        
         return f'✓ Translated {input_file} → {output_file} ({total_blocks} subtitles)'
 
     except FileNotFoundError:
@@ -132,16 +189,16 @@ def translate_single_srt(input_file, output_lang, source_lang, translator_servic
         return f'✗ Error for {input_file}: {e}'
 
 
-# Alias for test compatibility and backward compatibility
-def translate_srt_file(input_file, target_language, source_language='auto', output_file=None):
+# Alias for test compatibility
+def translate_srt_file(input_file: str, target_language: str, source_language: str = 'auto', output_file: Optional[str] = None) -> str:
     """Legacy function for backward compatibility."""
     output_dir = os.path.dirname(output_file) if output_file else None
     return translate_single_srt(input_file, target_language, source_language, 'google', output_dir=output_dir)
 
 
-def collect_srt_files(input_paths):
+def collect_srt_files(input_paths: List[str]) -> List[str]:
     """Collect all SRT files from paths and directories."""
-    srt_files = []
+    srt_files: List[str] = []
     for path in input_paths:
         if os.path.isfile(path) and path.lower().endswith('.srt'):
             srt_files.append(path)
@@ -153,7 +210,7 @@ def collect_srt_files(input_paths):
     return srt_files
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description='Translate SRT subtitle files to any language.',
@@ -179,8 +236,8 @@ def main():
                         help='Directory to save translated files. If not provided, files are saved next to originals.')
     parser.add_argument('--workers', '-w', type=int, default=1,
                         help='Number of parallel workers for translation (default: 1, max: 8).')
-    parser.add_argument('--batch-size', type=int, default=10,
-                        help='Sentences per translation batch (default: 10). Reserved for future use.')
+    parser.add_argument('--no-cache', action='store_false', dest='use_cache',
+                        help="Disable progress caching (don't resume from previous run).")
 
     args = parser.parse_args()
 
@@ -221,11 +278,12 @@ def main():
           f'using {args.translator}{worker_info}...\n')
 
     # Translate files
-    results = []
+    results: List[str] = []
     for srt_file in srt_files_to_translate:
         result = translate_single_srt(
             srt_file, args.output_lang, args.source_lang,
-            args.translator, output_dir=args.output_dir, workers=workers, _batch_size=args.batch_size
+            args.translator, output_dir=args.output_dir, workers=workers,
+            use_cache=args.use_cache
         )
         results.append(result)
         print(result)

@@ -25,8 +25,11 @@ setup(
         'deep-translator',
         'tqdm',
         'chardet',
-        'nltk',
+        'nltk>=3.9',
         'langdetect',
+        'requests>=2.32.2',
+        'urllib3>=1.26.19',
+        'zipp>=3.19.1',
     ],
     entry_points={
         'console_scripts': [

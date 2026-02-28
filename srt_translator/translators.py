@@ -3,12 +3,28 @@ Translation Services - Provides an abstraction layer for various translation API
 Supported: Google Translate, DeepL, and MyMemory.
 """
 import os
+import logging
 from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Type
 from deep_translator import GoogleTranslator, DeeplTranslator, MyMemoryTranslator
+from dotenv import load_dotenv
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log
+)
 
+# Load environment variables from .env file
+load_dotenv()
+
+# Setup logging for retries
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Common language codes supported by most translation services
-COMMON_LANGUAGE_CODES = {
+COMMON_LANGUAGE_CODES: Dict[str, str] = {
     'af': 'Afrikaans', 'sq': 'Albanian', 'am': 'Amharic', 'ar': 'Arabic',
     'hy': 'Armenian', 'az': 'Azerbaijani', 'eu': 'Basque', 'be': 'Belarusian',
     'bn': 'Bengali', 'bs': 'Bosnian', 'bg': 'Bulgarian', 'ca': 'Catalan',
@@ -40,9 +56,9 @@ COMMON_LANGUAGE_CODES = {
 }
 
 
-def get_supported_languages():
+def get_supported_languages() -> str:
     """Return a formatted string of supported language codes."""
-    lines = ["Supported language codes:"]
+    lines: List[str] = ["Supported language codes:"]
     lines.append("-" * 50)
     for code, name in sorted(COMMON_LANGUAGE_CODES.items(), key=lambda x: x[1]):
         lines.append(f"  {code:8} - {name}")
@@ -52,7 +68,7 @@ def get_supported_languages():
     return "\n".join(lines)
 
 
-def validate_language_code(code, allow_auto=False):
+def validate_language_code(code: str, allow_auto: bool = False) -> bool:
     """
     Validate if a language code is likely supported.
     Returns True if valid, False otherwise.
@@ -66,18 +82,24 @@ def validate_language_code(code, allow_auto=False):
 class BaseTranslator(ABC):
     """Abstract base class for all translators."""
     @abstractmethod
-    def translate(self, text, dest_lang, src_lang=None):
+    def translate(self, text: str, dest_lang: str, src_lang: Optional[str] = None) -> str:
         """Translate text from src_lang to dest_lang."""
 
 
 class GoogleTranslate(BaseTranslator):
     """Translator using Google Translate via deep-translator."""
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Google translator."""
         self.translator = GoogleTranslator()
 
-    def translate(self, text, dest_lang, src_lang=None):
-        """Translate text using Google."""
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception_type(Exception),
+        before_sleep=before_sleep_log(logger, logging.WARNING)
+    )
+    def translate(self, text: str, dest_lang: str, src_lang: Optional[str] = None) -> str:
+        """Translate text using Google with retries."""
         if not text or not text.strip():
             return text
         self.translator.source = src_lang if src_lang and src_lang != 'auto' else 'auto'
@@ -86,20 +108,27 @@ class GoogleTranslate(BaseTranslator):
             result = self.translator.translate(text)
             return result if result else text
         except Exception as e:
+            # Re-raise to trigger tenacity retry
             raise RuntimeError(f"Google Translate error: {e}") from e
 
 
 class DeepLTranslate(BaseTranslator):
     """Translator using DeepL via deep-translator."""
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize DeepL translator using DEEPL_API_KEY env var."""
         api_key = os.getenv("DEEPL_API_KEY")
         if not api_key:
-            raise ValueError("DeepL API key not found. Please set the DEEPL_API_KEY environment variable.")
+            raise ValueError("DeepL API key not found. Please set the DEEPL_API_KEY environment variable or a .env file.")
         self.api_key = api_key
 
-    def translate(self, text, dest_lang, src_lang=None):
-        """Translate text using DeepL."""
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception_type(Exception),
+        before_sleep=before_sleep_log(logger, logging.WARNING)
+    )
+    def translate(self, text: str, dest_lang: str, src_lang: Optional[str] = None) -> str:
+        """Translate text using DeepL with retries."""
         if not text or not text.strip():
             return text
         try:
@@ -112,10 +141,11 @@ class DeepLTranslate(BaseTranslator):
             result = translator.translate(text)
             return result if result else text
         except Exception as e:
+            # If it's a 429 or other temporary error, tenacity will retry
             raise RuntimeError(f"DeepL error: {e}") from e
 
 # Mapping from short codes to full MyMemory codes
-MYMEMORY_LANG_CODES = {
+MYMEMORY_LANG_CODES: Dict[str, str] = {
     'af': 'af-ZA', 'sq': 'sq-AL', 'am': 'am-ET', 'ar': 'ar-SA',
     'hy': 'hy-AM', 'az': 'az-AZ', 'eu': 'eu-ES', 'be': 'be-BY',
     'bn': 'bn-IN', 'bs': 'bs-BA', 'bg': 'bg-BG', 'ca': 'ca-ES',
@@ -150,11 +180,11 @@ class MyMemoryTranslate(BaseTranslator):
     """
     MyMemory translator - free, no API key required.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize MyMemory translator."""
         pass  # pylint: disable=unnecessary-pass
 
-    def _get_full_code(self, code):
+    def _get_full_code(self, code: Optional[str]) -> str:
         """Convert short code to full MyMemory format."""
         if not code or code == 'auto':
             return 'en-GB'
@@ -165,8 +195,14 @@ class MyMemoryTranslate(BaseTranslator):
         # Map short code to full code
         return MYMEMORY_LANG_CODES.get(code_lower, f'{code_lower}-{code_lower.upper()}')
 
-    def translate(self, text, dest_lang, src_lang=None):
-        """Translate text using MyMemory."""
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=2, max=30),
+        retry=retry_if_exception_type(Exception),
+        before_sleep=before_sleep_log(logger, logging.WARNING)
+    )
+    def translate(self, text: str, dest_lang: str, src_lang: Optional[str] = None) -> str:
+        """Translate text using MyMemory with retries."""
         if not text or not text.strip():
             return text
         try:
@@ -176,14 +212,15 @@ class MyMemoryTranslate(BaseTranslator):
             result = translator.translate(text)
             return result if result else text
         except Exception as e:
+            # Re-raise to trigger tenacity retry
             raise RuntimeError(f"MyMemory error: {e}") from e
 
 
-def get_translator(service_name):
+def get_translator(service_name: str) -> BaseTranslator:
     """
     Factory function to get a translator instance by name.
     """
-    translators = {
+    translators: Dict[str, Type[BaseTranslator]] = {
         'google': GoogleTranslate,
         'deepl': DeepLTranslate,
         'mymemory': MyMemoryTranslate,
