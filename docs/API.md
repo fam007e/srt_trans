@@ -5,6 +5,9 @@ SRT Translator can be used as a Python library.
 ## Installation
 
 ```bash
+# Recommended: Use a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
 pip install -e .
 ```
 

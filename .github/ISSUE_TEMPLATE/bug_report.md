@@ -23,6 +23,9 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
+**SRT Translator Version:**
+Output of `translate-srt --version` or binary version (e.g., v2026.02.28).
+
 **Desktop (please complete the following information):**
 - OS: [e.g. Linux Arch]
 - Kernel version [e.g. 6.10.10-arch1-1]

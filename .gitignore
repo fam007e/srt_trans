@@ -31,6 +31,10 @@ MANIFEST
 # before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
 
 # Installer logs
 pip-log.txt
@@ -123,6 +127,11 @@ celerybeat.pid
 *.swp
 *~
 .python-version
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
+desktop.ini
 
 # Project specific SRT outputs
 *.srt
@@ -139,3 +148,8 @@ celerybeat.pid
 *.pem
 secrets.yaml
 credentials.json
+# Development secrets
+.env
+auth.json
+*.p12
+*.jks

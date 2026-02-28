@@ -40,7 +40,9 @@ When creating an enhancement suggestion, please include:
 
 1. Clone the repository.
 2. Create a virtual environment: `python -m venv .venv`.
-3. Activate it: `source .venv/bin/activate`.
+3. Activate it:
+   - Linux/macOS: `source .venv/bin/activate`
+   - Windows: `.venv\Scripts\activate`
 4. Run setup: `make setup`.
 5. Run all checks: `make check`.
 

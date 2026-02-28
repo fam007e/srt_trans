@@ -6,8 +6,8 @@ Currently, the latest version is the only one supported for security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2026.02.08   | :white_check_mark: |
-| < 2026.02.08   | :x:                |
+| 2026.02.28   | :white_check_mark: |
+| < 2026.02.28   | :x:                |
 
 ## Reporting a Vulnerability
 

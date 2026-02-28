@@ -12,7 +12,7 @@ with open(
 
 setup(
     name='srt-translator',
-    version='0.1.1',
+    version='2026.02.28',
     author='Faisal Ahmed Moshiur',
     author_email='faisalmoshiur+gitSRT@gmail.com',
     description='A powerful script to translate .srt files with concurrent processing support.',
@@ -28,7 +28,7 @@ setup(
         'nltk>=3.9',
         'langdetect',
         'requests>=2.32.2',
-        'urllib3>=1.26.19',
+        'urllib3>=2.6.3',
         'zipp>=3.19.1',
     ],
     entry_points={

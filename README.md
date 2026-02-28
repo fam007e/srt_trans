@@ -27,19 +27,31 @@ A robust and feature-rich Python command-line tool for translating SubRip (SRT) 
     cd SRT_Trans
     ```
 
-2.  **Setup Virtual Environment**:
+2.  **Basic Installation (for users)**:
     ```bash
     python -m venv .venv
     source .venv/bin/activate  # Linux/macOS
-    # .venv\Scripts\activate  # Windows
+    pip install .
+    python -m nltk.downloader punkt punkt_tab
     ```
 
-3.  **Install the package**:
-    ```bash
-    pip install .
-    # Download required NLTK data
-    python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
-    ```
+### Developer Setup
+
+For developers wanting to run tests and build the package, we provide a `Makefile`:
+
+```bash
+# 1. Create venv
+python -m venv .venv
+
+# 2. Setup all dev/test dependencies
+make setup
+
+# 3. Run all checks (lint, type-check, tests)
+make check
+
+# 4. Build binary
+make build
+```
 
 ### Basic Usage
 

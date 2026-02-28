@@ -7,7 +7,15 @@ on:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    name: Build & Release (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: srt_translator_linux
+          - os: windows-latest
+            artifact_name: srt_translator_win.exe
 
     steps:
     - name: Checkout code
@@ -21,43 +29,66 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
 
-    - name: Install Dependencies
+    - name: Set up Virtual Environment
+      shell: bash
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller .
+        python -m venv .venv
+        # Cross-platform way to activate or just use the full path
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          .venv/Scripts/python -m pip install --upgrade pip
+        else
+          .venv/bin/python -m pip install --upgrade pip
+        fi
 
-    - name: Download NLTK data
+    - name: Install Dependencies
+      shell: bash
       run: |
-        python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"
+        make setup
 
     - name: Build binary
+      shell: bash
       run: |
-        # Build Linux binary
-        pyinstaller --onefile --name srt_translator_linux srt_translator/cli.py
+        # Use make build but override the name for consistency
+        export PYTHONPATH=.
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          .venv/Scripts/pyinstaller --onefile --name ${{ matrix.artifact_name }} srt_translator/cli.py
+        else
+          make build
+          mv dist/srt_translator dist/${{ matrix.artifact_name }}
+        fi
 
-        # Build Windows .exe
-        pyinstaller --onefile --name srt_translator_win.exe srt_translator/cli.py
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: dist/${{ matrix.artifact_name }}
 
-        chmod +x dist/*
+  github_release:
+    name: Create GitHub Release
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up GitHub CLI
-      run: |
-        sudo apt-get install -y gh
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
 
-    - name: Authenticate GitHub CLI
-      run: |
-        echo "${{ secrets.SRT_TR_TOKEN }}" | gh auth login --with-token
+      - name: Flatten artifacts directory
+        run: |
+          mkdir dist
+          find artifacts/ -type f -exec cp {} dist/ \;
+          ls -R dist/
 
-    - name: Create release
-      id: create_release
-      run: |
-        tag_name=${GITHUB_REF#refs/tags/}
-        changelog=$(git log --oneline --pretty=format:"* %s (%h)" | head -n 20)
-        echo "Changelog: $changelog" > dist/changelog.txt
+      - name: Generate Changelog
+        run: |
+          git log --oneline --pretty=format:"* %s (%h)" | head -n 20 > dist/changelog.txt
 
-        gh release create "$tag_name" dist/srt_translator_win.exe dist/srt_translator_linux dist/changelog.txt --title "Release $tag_name" --notes "$changelog"
-
-    - name: Clean up binaries
-      run: |
-        rm dist/srt_translator_win.exe dist/srt_translator_linux
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag_name=${GITHUB_REF#refs/tags/}
+          gh release create "$tag_name" dist/* --title "Release $tag_name" --notes-file dist/changelog.txt

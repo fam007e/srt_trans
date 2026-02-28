@@ -2,6 +2,8 @@
 
 SRT Translator is a powerful CLI tool for translating SubRip (SRT) subtitle files.
 
+> **Note:** If you installed via `pip`, the command is `translate-srt`. If you are using the standalone binary, replace `translate-srt` with `./srt_translator` (or the specific binary name for your OS).
+
 ## Basic Usage
 
 The simplest way to use SRT Translator is to specify an input file and a target language:

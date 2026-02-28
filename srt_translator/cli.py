@@ -9,8 +9,9 @@ import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Tuple, Optional, Any, Dict
 from tqdm import tqdm
-from .srt_parser import SrtParser
-from .translators import get_translator, get_supported_languages, validate_language_code, BaseTranslator
+from srt_translator.srt_parser import SrtParser
+from srt_translator.translators import get_translator, get_supported_languages, validate_language_code, BaseTranslator
+from srt_translator import __version__
 
 
 def get_file_hash(filepath: str) -> str:
@@ -215,14 +216,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description='Translate SRT subtitle files to any language.',
         epilog='Examples:\n'
-               '  translate-srt movie.srt -t es                      # Translate to Spanish\n'
-               '  translate-srt ./subs/ -t fr --translator mymemory  # Directory to French\n'
-               '  translate-srt movie.srt -t de --workers 4          # Parallel translation\n'
-               '  translate-srt --list-languages                     # Show supported languages',
+               '  %(prog)s movie.srt -t es                      # Translate to Spanish\n'
+               '  %(prog)s ./subs/ -t fr --translator mymemory  # Directory to French\n'
+               '  %(prog)s movie.srt -t de --workers 4          # Parallel translation\n'
+               '  %(prog)s --list-languages                     # Show supported languages',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument('--list-languages', action='store_true',
                         help='Display supported language codes and exit.')
+    parser.add_argument('-v', '--version', action='version',
+                        version=f'%(prog)s {__version__}',
+                        help='Display the version and exit.')
     parser.add_argument('input_paths', type=str, nargs='*',
                         help='Path(s) to input SRT files or directories containing SRT files.')
     parser.add_argument('-t', '--target', dest='output_lang', type=str,
