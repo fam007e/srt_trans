@@ -76,13 +76,8 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
-
-      - name: Flatten artifacts directory
-        run: |
-          mkdir dist
-          find artifacts/ -type f -exec cp {} dist/ \;
-          ls -R dist/
+          path: dist/
+          merge-multiple: true
 
       - name: Generate Changelog
         run: |
