@@ -32,8 +32,8 @@ When creating an enhancement suggestion, please include:
 ### Pull Requests
 
 * Fill in the [PULL_REQUEST_TEMPLATE](.github/PULL_REQUEST_TEMPLATE.md).
-* Ensure the test suite passes by running `pytest`.
-* Follow the existing code style (monitored by Pylint).
+* Ensure the test suite passes by running `make check`.
+* Follow the existing code style (monitored by Ruff and MyPy).
 * Document any change in behavior.
 
 ## Development Setup
@@ -41,15 +41,17 @@ When creating an enhancement suggestion, please include:
 1. Clone the repository.
 2. Create a virtual environment: `python -m venv .venv`.
 3. Activate it: `source .venv/bin/activate`.
-4. Install dependencies: `pip install -r requirements.txt -r test_requirements.txt`.
-5. Install in editable mode: `pip install -e .`.
-6. Run tests: `pytest`.
+4. Run setup: `make setup`.
+5. Run all checks: `make check`.
 
 ## Styleguides
 
 ### Python Styleguide
 
-All Python code is linted with Pylint. Please check your changes with `pylint srt_translator/`.
+All Python code is linted with **Ruff** and type-checked with **MyPy**.
+* Check linting: `make lint`
+* Check types: `make type-check`
+* Run all validations: `make check`
 
 ### Documentation Styleguide
 

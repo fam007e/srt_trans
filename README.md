@@ -1,20 +1,21 @@
 # SRT Translator
 
-[![Build Status](https://github.com/fam007e/SRT_Trans/workflows/Test%20Suite/badge.svg)](https://github.com/fam007e/SRT_Trans/actions)
-[![Pylint Score](https://github.com/fam007e/SRT_Trans/workflows/Pylint/badge.svg)](https://github.com/fam007e/SRT_Trans/actions)
+[![Build Status](https://github.com/fam007e/SRT_Trans/actions/workflows/ci.yml/badge.svg)](https://github.com/fam007e/SRT_Trans/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-A robust and feature-rich Python command-line tool for translating SubRip (SRT) subtitle files. Supports Google Translate, DeepL, and MyMemory with intelligent mixed-language handling and HTML tag preservation.
+A robust and feature-rich Python command-line tool for translating SubRip (SRT) subtitle files. Supports Google Translate, DeepL, and MyMemory with intelligent mixed-language handling, HTML tag preservation, and resilient error recovery.
 
 ## ✨ Features
 
 *   **Modular Architecture:** Easy to extend with new translation services.
 *   **Multiple Services:** Google Translate (default), DeepL, and MyMemory.
+*   **Resilient Recovery:** Automatic retries with exponential backoff and resume capability for interrupted translations.
 *   **Parallel Processing:** Use `--workers` to speed up translation of large files.
 *   **Mixed-Language Handling:** Sentence-level language detection for mixed subtitles.
 *   **HTML Tag Preservation:** Keeps `<i>`, `<b>`, etc., styling intact.
 *   **Batch Processing:** Translate multiple files or entire directories at once.
-*   **Automatic Output Naming:** Standardization output file names (e.g., `_es.srt`).
+*   **Configuration:** Support for `.env` files for secure API key management.
 
 ## 🚀 Quick Start
 
@@ -33,11 +34,11 @@ A robust and feature-rich Python command-line tool for translating SubRip (SRT) 
     # .venv\Scripts\activate  # Windows
     ```
 
-3.  **Install dependencies**:
+3.  **Install the package**:
     ```bash
-    pip install -r requirements.txt
-    pip install -e .
-    python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"
+    pip install .
+    # Download required NLTK data
+    python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
     ```
 
 ### Basic Usage

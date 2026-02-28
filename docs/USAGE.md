@@ -45,10 +45,27 @@ SRT Translator supports multiple translation services:
 
 * `google` (default): Fast and robust.
 * `mymemory`: Free alternative, no API key required.
-* `deepl`: Higher quality (requires `DEEPL_API_KEY` environment variable).
+* `deepl`: Higher quality (requires `DEEPL_API_KEY`).
 
+#### Configuration (Environment Variables)
+
+For services like DeepL, you need an API key. You can:
+* Set an environment variable: `export DEEPL_API_KEY="your-key-here"`
+* Create a `.env` file in the project directory:
+  ```env
+  DEEPL_API_KEY=your-key-here
+  ```
+
+### Resilience & Error Recovery
+
+SRT Translator is designed to handle API interruptions gracefully:
+
+* **Automatic Retries:** If an API call fails due to network issues or rate limits, it will automatically retry with an exponential backoff.
+* **Resume Capability:** Progress is automatically saved to a cache directory (`~/.srt_translator_cache`). If a translation is interrupted, running the same command again will pick up exactly where it left off.
+
+To disable this caching behavior, use the `--no-cache` flag:
 ```bash
-translate-srt movie.srt -t de --translator mymemory
+translate-srt movie.srt -t es --no-cache
 ```
 
 ### Parallel Processing (Speed Up)
