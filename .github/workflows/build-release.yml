@@ -13,9 +13,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: srt_translator_linux
+            artifact_name: srt-translator-cli-linux
           - os: windows-latest
-            artifact_name: srt_translator_win.exe
+            artifact_name: srt-translator-cli-win.exe
 
     steps:
     - name: Checkout code
