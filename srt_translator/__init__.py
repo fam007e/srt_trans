@@ -2,7 +2,7 @@
 SRT Translator - A tool for translating SRT subtitle files.
 """
 
-__version__ = '2026.02.28'
+__version__ = '2026.03.02'
 
 from .srt_parser import SrtParser, Subtitle
 from .translators import (

@@ -38,8 +38,8 @@ check: lint type-check test
 	@echo "All checks passed!"
 
 build:
-	PYTHONPATH=. $(VENV_PYINSTALLER) --onefile --name srt_translator srt_translator/cli.py
-	@echo "Binary created in dist/srt_translator"
+	PYTHONPATH=. $(VENV_PYINSTALLER) --onefile --name srt-translator-cli srt_translator/cli.py
+	@echo "Binary created in dist/srt-translator-cli"
 
 clean:
 	rm -rf .pytest_cache .coverage coverage.xml htmlcov .mypy_cache .ruff_cache

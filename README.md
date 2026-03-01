@@ -1,6 +1,6 @@
 # SRT Translator
 
-[![Build Status](https://github.com/fam007e/SRT_Trans/actions/workflows/ci.yml/badge.svg)](https://github.com/fam007e/SRT_Trans/actions)
+[![Build Status](https://github.com/fam007e/srt_trans/actions/workflows/ci.yml/badge.svg)](https://github.com/fam007e/srt_trans/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
@@ -21,18 +21,16 @@ A robust and feature-rich Python command-line tool for translating SubRip (SRT) 
 
 ### Installation
 
-1.  **Clone the repository**:
+1.  **From PyPI (Recommended)**:
     ```bash
-    git clone https://github.com/fam007e/SRT_Trans.git
-    cd SRT_Trans
+    pip install srt-translator-cli
     ```
 
-2.  **Basic Installation (for users)**:
+2.  **From Source**:
     ```bash
-    python -m venv .venv
-    source .venv/bin/activate  # Linux/macOS
+    git clone https://github.com/fam007e/srt_trans.git
+    cd srt_trans
     pip install .
-    python -m nltk.downloader punkt punkt_tab
     ```
 
 ### Developer Setup
@@ -51,12 +49,15 @@ make check
 
 # 4. Build binary
 make build
+
+# 5. (Optional) Install in editable mode
+pip install -e .
 ```
 
 ### Basic Usage
 
 ```bash
-translate-srt movie.srt -t es
+srt-translator-cli movie.srt -t es
 ```
 
 ## 📚 Documentation
@@ -72,7 +73,7 @@ For more detailed information, please see our dedicated documentation:
 SRT Translator supports over 70 languages. Run the following command to see the full list:
 
 ```bash
-translate-srt --list-languages
+srt-translator-cli --list-languages
 ```
 
 ## ⚖ License

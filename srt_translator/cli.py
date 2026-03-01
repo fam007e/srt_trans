@@ -24,7 +24,7 @@ def get_file_hash(filepath: str) -> str:
 class TranslationState:
     """Handles persistence of translation progress."""
     def __init__(self, input_file: str, output_lang: str, translator: str):
-        self.state_dir = os.path.join(os.path.expanduser("~"), ".srt_translator_cache")
+        self.state_dir = os.path.join(os.path.expanduser("~"), ".srt_translator_cli_cache")
         os.makedirs(self.state_dir, exist_ok=True)
         
         file_hash = get_file_hash(input_file)
@@ -214,6 +214,7 @@ def collect_srt_files(input_paths: List[str]) -> List[str]:
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
+        prog='srt-translator-cli',
         description='Translate SRT subtitle files to any language.',
         epilog='Examples:\n'
                '  %(prog)s movie.srt -t es                      # Translate to Spanish\n'

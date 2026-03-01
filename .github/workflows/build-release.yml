@@ -54,7 +54,7 @@ jobs:
           .venv/Scripts/pyinstaller --onefile --name ${{ matrix.artifact_name }} srt_translator/cli.py
         else
           make build
-          mv dist/srt_translator dist/${{ matrix.artifact_name }}
+          mv dist/srt-translator-cli dist/${{ matrix.artifact_name }}
         fi
 
     - name: Upload artifact

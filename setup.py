@@ -11,20 +11,20 @@ with open(
     long_description = f.read()
 
 setup(
-    name='srt-translator',
-    version='2026.02.28',
+    name='srt-translator-cli',
+    version='2026.03.02',
     author='Faisal Ahmed Moshiur',
     author_email='faisalmoshiur+gitSRT@gmail.com',
     description='A powerful script to translate .srt files with concurrent processing support.',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/fam007e/SRT_Trans',
+    url='https://github.com/fam007e/srt_trans',
     packages=find_packages(),
     install_requires=[
         'pysrt',
         'deep-translator',
         'tqdm',
-        'chardet',
+        'chardet<6.0.0',
         'nltk>=3.9',
         'langdetect',
         'requests>=2.32.2',
@@ -33,7 +33,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'translate-srt=srt_translator.cli:main',
+            'srt-translator-cli=srt_translator.cli:main',
         ],
     },
     classifiers=[

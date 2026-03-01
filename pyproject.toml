@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "srt-translator"
-version = "2026.02.28"
+name = "srt-translator-cli"
+version = "2026.03.02"
 authors = [
     { name = "Faisal Ahmed Moshiur", email = "faisalmoshiur+gitSRT@gmail.com" },
 ]
@@ -28,7 +28,7 @@ dependencies = [
     "pysrt",
     "deep-translator",
     "tqdm",
-    "chardet",
+    "chardet<6.0.0",
     "nltk>=3.9",
     "langdetect",
     "requests>=2.32.2",
@@ -54,11 +54,11 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/fam007e/SRT_Trans"
-"Bug Tracker" = "https://github.com/fam007e/SRT_Trans/issues"
+"Homepage" = "https://github.com/fam007e/srt_trans"
+"Bug Tracker" = "https://github.com/fam007e/srt_trans/issues"
 
 [project.scripts]
-translate-srt = "srt_translator.cli:main"
+srt-translator-cli = "srt_translator.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
